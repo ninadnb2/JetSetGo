@@ -1,5 +1,6 @@
 [versions]
 agp = "8.7.3"
+coreKtxVersion = "1.12.0"
 kotlin = "2.0.0"
 coreKtx = "1.16.0"
 junit = "4.13.2"
@@ -10,10 +11,13 @@ activityCompose = "1.10.1"
 composeBom = "2025.06.01"
 accompanistPermissions = "0.36.0"
 lottieCompose = "6.0.0"
+workRuntimeKtx = "2.10.2"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-ktx-v1120 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 charts = { module = "com.github.tehras:charts", version = "0.2.4-alpha" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

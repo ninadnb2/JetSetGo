@@ -59,5 +59,7 @@ dependencies {
     implementation( libs.accompanist.permissions)
     implementation(libs.charts)
     implementation(libs.lottie.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.core.ktx.v1120)
 
 }

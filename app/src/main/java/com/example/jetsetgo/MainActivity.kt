@@ -4,7 +4,6 @@ import android.content.Context
 import android.hardware.*
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -16,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.jetsetgo.notification.ReminderScheduler
 import com.example.jetsetgo.repository.StepRepository
 import com.example.jetsetgo.ui.DashboardScreen
 import com.example.jetsetgo.ui.WeeklyStatsScreen
@@ -70,6 +70,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         isPermissionGranted = permissionState.status.isGranted,
                         shouldShowRationale = permissionState.status.shouldShowRationale
                     )
+
+                    if (permissionState.status.isGranted) {
+                        LaunchedEffect(Unit) {
+                            ReminderScheduler.scheduleDailyReminder(applicationContext)
+                        }
+                    }
                 }
             }
         }
