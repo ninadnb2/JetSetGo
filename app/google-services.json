@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "33896882088",
+    "firebase_url": "https://jetsetgo-a75fd-default-rtdb.firebaseio.com",
+    "project_id": "jetsetgo-a75fd",
+    "storage_bucket": "jetsetgo-a75fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33896882088:android:c6e1b606a3b025aa87079d",
+        "android_client_info": {
+          "package_name": "com.example.jetsetgo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "33896882088-et1i5p42pmo7m011b23qkgm6dr4v6ifv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.jetsetgo",
+            "certificate_hash": "8c16dce63aed3b259758f7d32224a67592ea39e6"
+          }
+        },
+        {
+          "client_id": "33896882088-t7av55118bradiv76rjbn2cr8pkcvr3n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALsgxob08GwEfzK6BlWBkkrBoPW4YNDNc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "33896882088-t7av55118bradiv76rjbn2cr8pkcvr3n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -40,7 +41,14 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.firebase.bom))
+    // Firebase
+    implementation(libs.com.google.firebase.firebase.auth.ktx2)
+    implementation(libs.google.firebase.database.ktx)
+    implementation(libs.firebase.ui.auth)
+    implementation(libs.play.services.auth)
 
+    // Jetpack Compose + AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -49,6 +57,14 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // Misc
+    implementation(libs.accompanist.permissions)
+    implementation(libs.charts)
+    implementation(libs.lottie.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -56,10 +72,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation( libs.accompanist.permissions)
-    implementation(libs.charts)
-    implementation(libs.lottie.compose)
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.core.ktx.v1120)
-
 }

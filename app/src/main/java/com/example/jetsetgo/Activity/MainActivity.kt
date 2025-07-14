@@ -1,4 +1,4 @@
-package com.example.jetsetgo
+package com.example.jetsetgo.Activity
 
 import android.content.Context
 import android.hardware.*
@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import authenticateUser
 import com.example.jetsetgo.notification.ReminderScheduler
 import com.example.jetsetgo.repository.StepRepository
 import com.example.jetsetgo.ui.DashboardScreen
@@ -23,6 +24,7 @@ import com.example.jetsetgo.ui.computeWeeklyStats
 import com.example.jetsetgo.ui.theme.JetSetGoTheme
 import com.example.jetsetgo.viewmodel.StepViewModel
 import com.google.accompanist.permissions.*
+import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -36,6 +38,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        FirebaseApp.initializeApp(this)
+        authenticateUser()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
