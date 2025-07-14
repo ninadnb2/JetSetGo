@@ -3,11 +3,12 @@ package com.example.jetsetgo.notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.jetsetgo.R
+import android.os.VibrationEffect
+import android.os.Vibrator
 
 class StepReminderWorker(
     private val context: Context,
@@ -15,13 +16,12 @@ class StepReminderWorker(
 ) : Worker(context, workerParams) {
 
     override fun doWork(): Result {
-        Log.d("StepReminderWorker", "Notification Worker triggered!")
+        vibrate()
         sendNotification()
         return Result.success()
     }
 
     private fun sendNotification() {
-        Log.d("StepReminderWorker", "send notification")
         val channelId = "step_reminder_channel"
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -47,4 +47,12 @@ class StepReminderWorker(
 
         notificationManager.notify(1, notification)
     }
+
+     fun vibrate() {
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        vibrator.vibrate(
+            VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)
+        )
+    }
+
 }
