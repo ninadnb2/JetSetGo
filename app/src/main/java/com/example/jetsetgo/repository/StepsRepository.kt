@@ -1,8 +1,6 @@
 package com.example.jetsetgo.repository
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -11,12 +9,6 @@ class StepRepository(context: Context) {
     private val baseKey = "base_step_count"
 
     val today: String = LocalDate.now().toString()
-
-    fun getBaseStep(): Int = prefs.getInt(baseKey, -1)
-
-    fun saveBaseStep(value: Int) {
-        prefs.edit().putInt(baseKey, value).apply()
-    }
 
     fun saveStepsForDate(date: String, steps: Int) {
         prefs.edit().putInt(date, steps).apply()
@@ -34,4 +26,13 @@ class StepRepository(context: Context) {
             formatter.format(date) to steps
         }.reversed()
     }
+
+    fun getBaseStepForDate(date: String): Int {
+        return prefs.getInt("${baseKey}_$date", -1)
+    }
+
+    fun saveBaseStepForDate(date: String, baseStep: Int) {
+        prefs.edit().putInt("${baseKey}_$date", baseStep).apply()
+    }
+
 }

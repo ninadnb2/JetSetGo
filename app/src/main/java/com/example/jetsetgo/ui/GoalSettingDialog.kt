@@ -20,7 +20,7 @@ fun GoalSettingDialog(
             TextButton(onClick = {
                 val newGoal = goalInput.toIntOrNull()
                 when {
-                    newGoal != null && newGoal in 100..50000 -> {
+                    newGoal != null && newGoal in 1000..50000 -> {
                         onGoalChange(newGoal)
                         onDismiss()
                     }

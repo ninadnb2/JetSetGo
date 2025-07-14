@@ -36,7 +36,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        Log.d("API_LEVEL", "Running on API ${Build.VERSION.SDK_INT}")
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
@@ -80,7 +79,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    @OptIn(ExperimentalPermissionsApi::class)
     @Composable
     fun JetSetGoApp(
         stepCount: Int,
@@ -133,21 +131,25 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             if (it.sensor.type == Sensor.TYPE_STEP_COUNTER) {
                 val totalSteps = it.values[0].toInt()
-                val baseStep = stepRepository.getBaseStep()
+                val today = stepRepository.today
+
+                val baseStep = stepRepository.getBaseStepForDate(today)
 
                 if (baseStep == -1) {
-                    stepRepository.saveBaseStep(totalSteps)
-                } else {
-                    val stepsToday = totalSteps - baseStep
-                    viewModel.updateSteps(stepsToday)
+                    stepRepository.saveBaseStepForDate(today, totalSteps)
+                }
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        stepRepository.saveStepsForDate(stepRepository.today, stepsToday)
-                    }
+                val effectiveBase = if (baseStep == -1) totalSteps else baseStep
+                val stepsToday = totalSteps - effectiveBase
+                viewModel.updateSteps(stepsToday)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    stepRepository.saveStepsForDate(today, stepsToday)
                 }
             }
         }
     }
+
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }

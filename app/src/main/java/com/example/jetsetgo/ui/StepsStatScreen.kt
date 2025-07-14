@@ -93,7 +93,8 @@ fun StepStatsScreen(
 
             Card(modifier = cardModifier) {
                 Box(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -131,8 +132,6 @@ fun StepStatsScreen(
         }
     }
 }
-
-
 
 
 fun computeStepStats(stepCount: Int, goal: Int): StepStatsSummary {
