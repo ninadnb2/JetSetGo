@@ -73,4 +73,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.firebase.auth)
+
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
 }

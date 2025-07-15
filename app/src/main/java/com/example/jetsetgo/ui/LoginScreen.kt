@@ -86,7 +86,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Google Login Button
+
             Button(
                 onClick = onGoogleLogin,
                 colors = ButtonDefaults.buttonColors(
@@ -106,7 +106,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // OR Divider
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(0.8f)
@@ -118,7 +117,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone Login Section
             if (!isOtpSent) {
                 OutlinedTextField(
                     value = phoneNumber,

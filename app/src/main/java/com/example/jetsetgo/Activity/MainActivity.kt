@@ -25,8 +25,11 @@ import com.example.jetsetgo.notification.ReminderScheduler
 import com.example.jetsetgo.repository.StepRepository
 import com.example.jetsetgo.ui.DashboardScreen
 import com.example.jetsetgo.ui.LoginScreen
+import com.example.jetsetgo.ui.OnboardingScreen
 import com.example.jetsetgo.ui.WeeklyStatsScreen
 import com.example.jetsetgo.ui.computeWeeklyStats
+import com.example.jetsetgo.ui.isOnboardingComplete
+import com.example.jetsetgo.ui.markOnboardingComplete
 import com.example.jetsetgo.ui.theme.JetSetGoTheme
 import com.example.jetsetgo.viewmodel.StepViewModel
 import com.google.accompanist.permissions.*
@@ -74,10 +77,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val user = auth.currentUser
                     if (user == null) {
-                        LoginScreen(onGoogleLogin = { signInWithGoogle() },
-                            onPhoneLogin = { phone ->
-                                startPhoneVerification(phone)
+                        var showOnboarding by remember { mutableStateOf(!isOnboardingComplete(this)) }
+
+                        if (showOnboarding) {
+                            OnboardingScreen(onFinish = {
+                                showOnboarding = false
                             })
+                        } else {
+                            LoginScreen(onGoogleLogin = { signInWithGoogle() },
+                                onPhoneLogin = { phone ->
+                                    startPhoneVerification(phone)
+                                })
+                        }
                     } else {
                         var isSynced by remember { mutableStateOf(false) }
 
