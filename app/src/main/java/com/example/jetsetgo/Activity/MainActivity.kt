@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.jetsetgo.notification.ReminderScheduler
 import com.example.jetsetgo.repository.StepRepository
 import com.example.jetsetgo.ui.DashboardScreen
+import com.example.jetsetgo.ui.LoginScreen
 import com.example.jetsetgo.ui.WeeklyStatsScreen
 import com.example.jetsetgo.ui.computeWeeklyStats
 import com.example.jetsetgo.ui.theme.JetSetGoTheme
@@ -142,61 +143,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    @Composable
-    fun LoginScreen(onGoogleLogin: () -> Unit, onPhoneLogin: (String) -> Unit) {
-        var phoneNumber by remember { mutableStateOf("") }
-        var otp by remember { mutableStateOf("") }
-        var isOtpSent by remember { mutableStateOf(false) }
-        val context = LocalContext.current
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Login to Continue", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = onGoogleLogin) {
-                Text("Login with Google")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!isOtpSent) {
-                OutlinedTextField(value = phoneNumber,
-                    onValueChange = { phoneNumber = it },
-                    label = { Text("Enter Phone Number (+91...)") })
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(onClick = {
-                    if (phoneNumber.isNotEmpty()) {
-                        onPhoneLogin(phoneNumber)
-                        isOtpSent = true
-                        Toast.makeText(context, "OTP sent!", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text("Login with Phone")
-                }
-            } else {
-                OutlinedTextField(value = otp,
-                    onValueChange = { otp = it },
-                    label = { Text("Enter OTP") })
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(onClick = {
-                    if (otp.isNotEmpty()) {
-                        (context as? MainActivity)?.verifyOtp(otp)
-                    }
-                }) {
-                    Text("Verify OTP")
-                }
-            }
-        }
-    }
 
     @Composable
     fun JetSetGoApp(
