@@ -12,7 +12,8 @@ fun DashboardScreen(
     stepCount: Int,
     goal: Int,
     onSetGoal: (Int) -> Unit,
-    onViewWeeklyClicked: () -> Unit
+    onViewWeeklyClicked: () -> Unit,
+    onLogout: () -> Unit
 ) {
     var showGoalDialog by remember { mutableStateOf(false) }
     val stepStatsSummary = remember(stepCount, goal) {
@@ -42,17 +43,17 @@ fun DashboardScreen(
         Button(onClick = { showGoalDialog = true }) {
             Text("Set Daily Goal")
         }
+
+        Button(onClick = onLogout, modifier = Modifier.padding(8.dp)) {
+            Text("Logout")
+        }
     }
 
     if (showGoalDialog) {
-        GoalSettingDialog(
-            currentGoal = goal,
-            onGoalChange = {
-                onSetGoal(it)
-                showGoalDialog = false
-            },
-            onDismiss = { showGoalDialog = false }
-        )
+        GoalSettingDialog(currentGoal = goal, onGoalChange = {
+            onSetGoal(it)
+            showGoalDialog = false
+        }, onDismiss = { showGoalDialog = false })
     }
 }
 

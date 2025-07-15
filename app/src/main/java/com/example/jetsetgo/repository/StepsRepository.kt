@@ -1,7 +1,6 @@
 package com.example.jetsetgo.repository
 
 import android.content.Context
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import java.time.LocalDate
@@ -11,27 +10,27 @@ class StepRepository(context: Context) {
     private val prefs = context.getSharedPreferences("step_prefs", Context.MODE_PRIVATE)
     private val baseKey = "base_step_count"
     private val firebaseDb = FirebaseDatabase.getInstance().reference
-    private val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "guest"
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+
+    private val userId: String
+        get() = auth.currentUser?.uid ?: "guest"
 
     val today: String = LocalDate.now().toString()
 
+    private fun stepKey(date: String) = "${userId}_$date"
+    private fun baseStepKey(date: String) = "${baseKey}_${userId}_$date"
+
     fun saveStepsForDate(date: String, steps: Int) {
-        prefs.edit().putInt(date, steps).apply()
+        prefs.edit().putInt(stepKey(date), steps).apply()
         firebaseDb.child("users")
             .child(userId)
             .child("steps")
             .child(date)
             .setValue(steps)
-            .addOnSuccessListener {
-                Log.d("FIREBASE_WRITE", "Saved $steps for $date")
-            }
-            .addOnFailureListener {
-                Log.e("FIREBASE_WRITE", "Failed to save: ${it.message}")
-            }
     }
 
     fun getStepsForDate(date: String): Int {
-        return prefs.getInt(date, 0)
+        return prefs.getInt(stepKey(date), 0)
     }
 
     fun getWeeklyStepData(): List<Pair<String, Int>> {
@@ -44,16 +43,44 @@ class StepRepository(context: Context) {
     }
 
     fun getBaseStepForDate(date: String): Int {
-        return prefs.getInt("${baseKey}_$date", -1)
+        return prefs.getInt(baseStepKey(date), -1)
     }
 
     fun saveBaseStepForDate(date: String, baseStep: Int) {
-        prefs.edit().putInt("${baseKey}_$date", baseStep).apply()
-
+        prefs.edit().putInt(baseStepKey(date), baseStep).apply()
         firebaseDb.child("users")
             .child(userId)
             .child("baseSteps")
             .child(date)
             .setValue(baseStep)
     }
+
+    fun syncStepsFromFirebase(lastSensorSteps: Int? = null, onComplete: (() -> Unit)? = null) {
+        firebaseDb.child("users")
+            .child(userId)
+            .child("steps")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.children.forEach { child ->
+                    val date = child.key ?: return@forEach
+                    val steps = child.getValue(Int::class.java) ?: 0
+                    prefs.edit().putInt(stepKey(date), steps).apply()
+                }
+
+                lastSensorSteps?.let { initializeBaseStep(today, it) }
+
+                onComplete?.invoke()
+            }
+    }
+
+    fun initializeBaseStep(today: String, totalSensorSteps: Int) {
+        val syncedSteps = getStepsForDate(today)
+        val baseStep = totalSensorSteps - syncedSteps
+        saveBaseStepForDate(today, baseStep)
+    }
+
+    fun clearLocalData() {
+        prefs.edit().clear().apply()
+    }
+
 }

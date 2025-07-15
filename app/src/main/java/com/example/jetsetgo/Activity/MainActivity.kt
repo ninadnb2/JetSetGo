@@ -4,10 +4,12 @@ import android.content.Context
 import android.hardware.*
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
@@ -15,7 +17,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import authenticateUser
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.jetsetgo.notification.ReminderScheduler
 import com.example.jetsetgo.repository.StepRepository
 import com.example.jetsetgo.ui.DashboardScreen
@@ -25,6 +30,16 @@ import com.example.jetsetgo.ui.theme.JetSetGoTheme
 import com.example.jetsetgo.viewmodel.StepViewModel
 import com.google.accompanist.permissions.*
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.FirebaseException
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -32,14 +47,22 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var sensor: Sensor? = null
     private val viewModel: StepViewModel by viewModels()
     private lateinit var stepRepository: StepRepository
+    private var lastSensorSteps: Int? = null
+
+    private lateinit var auth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private var verificationId: String? = null
 
     @RequiresApi(Build.VERSION_CODES.Q)
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         FirebaseApp.initializeApp(this)
-        authenticateUser()
+        auth = FirebaseAuth.getInstance()
+
+        setupGoogleSignIn()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
@@ -48,44 +71,130 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setContent {
             JetSetGoTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val stepCount by viewModel.stepCount.collectAsState()
-                    val goal by viewModel.goal.collectAsState()
-                    var currentScreen by remember { mutableStateOf("dashboard") }
+                    val user = auth.currentUser
+                    if (user == null) {
+                        LoginScreen(onGoogleLogin = { signInWithGoogle() },
+                            onPhoneLogin = { phone ->
+                                startPhoneVerification(phone)
+                            })
+                    } else {
+                        var isSynced by remember { mutableStateOf(false) }
 
-                    val permissionState = rememberPermissionState(android.Manifest.permission.ACTIVITY_RECOGNITION)
-
-                    LaunchedEffect(Unit) {
-                        permissionState.launchPermissionRequest()
-                    }
-
-                    val weeklyData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                        stepRepository.getWeeklyStepData()
-                    else emptyList()
-
-                    JetSetGoApp(
-                        stepCount = stepCount,
-                        goal = goal,
-                        weeklyData = weeklyData,
-                        onUpdateGoal = { viewModel.updateGoal(it) },
-                        onBack = { currentScreen = "dashboard" },
-                        onNavigateToWeekly = { currentScreen = "weekly" },
-                        isWeeklyScreen = currentScreen == "weekly",
-                        requestPermission = { permissionState.launchPermissionRequest() },
-                        isPermissionGranted = permissionState.status.isGranted,
-                        shouldShowRationale = permissionState.status.shouldShowRationale
-                    )
-
-                    if (permissionState.status.isGranted) {
                         LaunchedEffect(Unit) {
-                            ReminderScheduler.scheduleDailyReminder(applicationContext)
+                            stepRepository.syncStepsFromFirebase(lastSensorSteps) {
+                                val today = stepRepository.today
+                                val existingSteps = stepRepository.getStepsForDate(today)
+                                viewModel.updateSteps(existingSteps)
+                                sensor?.let {
+                                    sensorManager.registerListener(
+                                        this@MainActivity, it, SensorManager.SENSOR_DELAY_NORMAL
+                                    )
+                                }
+                                isSynced = true
+                            }
+                        }
+
+                        if (isSynced) {
+                            val stepCount by viewModel.stepCount.collectAsState()
+                            val goal by viewModel.goal.collectAsState()
+                            var currentScreen by remember { mutableStateOf("dashboard") }
+
+                            val permissionState =
+                                rememberPermissionState(android.Manifest.permission.ACTIVITY_RECOGNITION)
+
+                            LaunchedEffect(Unit) {
+                                permissionState.launchPermissionRequest()
+                            }
+
+                            val weeklyData =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) stepRepository.getWeeklyStepData()
+                                else emptyList()
+
+                            JetSetGoApp(
+                                stepCount = stepCount,
+                                goal = goal,
+                                weeklyData = weeklyData,
+                                onUpdateGoal = { viewModel.updateGoal(it) },
+                                onBack = { currentScreen = "dashboard" },
+                                onNavigateToWeekly = { currentScreen = "weekly" },
+                                isWeeklyScreen = currentScreen == "weekly",
+                                requestPermission = { permissionState.launchPermissionRequest() },
+                                isPermissionGranted = permissionState.status.isGranted,
+                                shouldShowRationale = permissionState.status.shouldShowRationale
+                            )
+
+                            if (permissionState.status.isGranted) {
+                                LaunchedEffect(Unit) {
+                                    ReminderScheduler.scheduleDailyReminder(applicationContext)
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
                         }
                     }
                 }
             }
         }
+    }
 
-        sensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+    @Composable
+    fun LoginScreen(onGoogleLogin: () -> Unit, onPhoneLogin: (String) -> Unit) {
+        var phoneNumber by remember { mutableStateOf("") }
+        var otp by remember { mutableStateOf("") }
+        var isOtpSent by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Login to Continue", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = onGoogleLogin) {
+                Text("Login with Google")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (!isOtpSent) {
+                OutlinedTextField(value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Enter Phone Number (+91...)") })
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(onClick = {
+                    if (phoneNumber.isNotEmpty()) {
+                        onPhoneLogin(phoneNumber)
+                        isOtpSent = true
+                        Toast.makeText(context, "OTP sent!", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text("Login with Phone")
+                }
+            } else {
+                OutlinedTextField(value = otp,
+                    onValueChange = { otp = it },
+                    label = { Text("Enter OTP") })
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(onClick = {
+                    if (otp.isNotEmpty()) {
+                        (context as? MainActivity)?.verifyOtp(otp)
+                    }
+                }) {
+                    Text("Verify OTP")
+                }
+            }
         }
     }
 
@@ -111,12 +220,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 val summary = computeWeeklyStats(weeklyData, goal)
                 WeeklyStatsScreen(onBack = onBack, summary = summary)
             } else {
-                DashboardScreen(
-                    stepCount = stepCount,
+                DashboardScreen(stepCount = stepCount,
                     goal = goal,
                     onSetGoal = onUpdateGoal,
-                    onViewWeeklyClicked = onNavigateToWeekly
-                )
+                    onViewWeeklyClicked = onNavigateToWeekly,
+                    onLogout = {
+                        auth.signOut()
+                        googleSignInClient.signOut()
+                        recreate()
+                        stepRepository.clearLocalData()
+                    })
             }
         } else if (shouldShowRationale) {
             Column(
@@ -131,6 +244,75 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    private fun setupGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(com.example.jetsetgo.R.string.default_web_client_id))
+            .requestEmail().build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+    }
+
+    private val googleSignInLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            if (task.isSuccessful) {
+                val account = task.result
+                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                auth.signInWithCredential(credential).addOnCompleteListener {
+                    if (it.isSuccessful) {
+                        Toast.makeText(this, "Google Login Successful!", Toast.LENGTH_SHORT).show()
+                        recreate()
+                    } else {
+                        Toast.makeText(this, "Google Login Failed!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+    private fun signInWithGoogle() {
+        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+    }
+
+    private fun startPhoneVerification(phone: String) {
+        val options = PhoneAuthOptions.newBuilder(auth).setPhoneNumber(phone)
+            .setTimeout(60L, TimeUnit.SECONDS).setActivity(this)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    signInWithPhoneCredential(credential)
+                }
+
+                override fun onVerificationFailed(p0: FirebaseException) {
+                    Toast.makeText(
+                        this@MainActivity, "Verification Failed: ${p0.message}", Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                override fun onCodeSent(
+                    verificationId: String, token: PhoneAuthProvider.ForceResendingToken
+                ) {
+                    this@MainActivity.verificationId = verificationId
+                    Toast.makeText(this@MainActivity, "OTP Sent", Toast.LENGTH_SHORT).show()
+                }
+            }).build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    fun verifyOtp(otp: String) {
+        verificationId?.let {
+            val credential = PhoneAuthProvider.getCredential(it, otp)
+            signInWithPhoneCredential(credential)
+        }
+    }
+
+    private fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
+        auth.signInWithCredential(credential).addOnCompleteListener {
+            if (it.isSuccessful) {
+                Toast.makeText(this, "Phone Login Successful!", Toast.LENGTH_SHORT).show()
+                recreate()
+            } else {
+                Toast.makeText(this, "Login Failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -141,25 +323,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             if (it.sensor.type == Sensor.TYPE_STEP_COUNTER) {
                 val totalSteps = it.values[0].toInt()
-                val today = stepRepository.today
+                lastSensorSteps = totalSteps
 
-                val baseStep = stepRepository.getBaseStepForDate(today)
+                val today = stepRepository.today
+                var baseStep = stepRepository.getBaseStepForDate(today)
 
                 if (baseStep == -1) {
-                    stepRepository.saveBaseStepForDate(today, totalSteps)
+                    val syncedSteps = stepRepository.getStepsForDate(today)
+                    baseStep = totalSteps - syncedSteps
+                    stepRepository.saveBaseStepForDate(today, baseStep)
                 }
 
-                val effectiveBase = if (baseStep == -1) totalSteps else baseStep
-                val stepsToday = totalSteps - effectiveBase
-                viewModel.updateSteps(stepsToday)
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    stepRepository.saveStepsForDate(today, stepsToday)
-                }
+                val todaySteps = maxOf(0, totalSteps - baseStep)
+                viewModel.updateSteps(todaySteps)
+                stepRepository.saveStepsForDate(today, todaySteps)
             }
         }
     }
-
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
