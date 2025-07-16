@@ -48,7 +48,7 @@ class StepReminderWorker(
         notificationManager.notify(1, notification)
     }
 
-     fun vibrate() {
+     private fun vibrate() {
         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         vibrator.vibrate(
             VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)

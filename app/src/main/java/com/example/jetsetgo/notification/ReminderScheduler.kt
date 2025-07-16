@@ -7,8 +7,8 @@ object ReminderScheduler {
 
     fun scheduleDailyReminder(context: Context) {
 
-        val workRequest = PeriodicWorkRequestBuilder<StepReminderWorker>(1, TimeUnit.DAYS)
-            .setInitialDelay(1, TimeUnit.HOURS)
+        val workRequest = PeriodicWorkRequestBuilder<StepReminderWorker>(3, TimeUnit.HOURS)
+            .setInitialDelay(3, TimeUnit.HOURS)
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
@@ -21,7 +21,7 @@ object ReminderScheduler {
 
     fun scheduleTestReminder(context: Context) {
         val request = OneTimeWorkRequestBuilder<StepReminderWorker>()
-            .setInitialDelay(1, TimeUnit.SECONDS)
+            .setInitialDelay(5, TimeUnit.SECONDS)
             .build()
 
         WorkManager.getInstance(context).enqueue(request)

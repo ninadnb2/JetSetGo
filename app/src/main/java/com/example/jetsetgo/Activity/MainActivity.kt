@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setContent {
             JetSetGoTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    RequestNotificationPermission()
                     val user = auth.currentUser
                     if (user == null) {
                         var showOnboarding by remember { mutableStateOf(!isOnboardingComplete(this)) }
@@ -299,4 +300,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    @OptIn(ExperimentalPermissionsApi::class)
+    @Composable
+    fun RequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionState = rememberPermissionState(android.Manifest.permission.POST_NOTIFICATIONS)
+
+            LaunchedEffect(Unit) {
+                if (!permissionState.status.isGranted) {
+                    permissionState.launchPermissionRequest()
+                }
+            }
+        }
+    }
+
 }
