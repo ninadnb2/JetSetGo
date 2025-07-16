@@ -1,10 +1,6 @@
 package com.example.jetsetgo.ui
 
 import android.content.Context
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -22,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.*
 import com.example.jetsetgo.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun OnboardingScreen(onFinish: () -> Unit) {
@@ -31,11 +28,17 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         OnboardingData("Stay Healthy", "Build healthy walking habits", R.raw.fit_onboarding)
     )
 
-    val pagerState = rememberPagerState(initialPage = 0) { slides.size }
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { slides.size }
+    )
+
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val currentPage by remember { derivedStateOf { pagerState.currentPage } }
     val isLastPage = currentPage == slides.lastIndex
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -62,21 +65,44 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 currentPage = currentPage
             )
         }
-
-        AnimatedVisibility(
-            visible = isLastPage,
-            enter = fadeIn(),
-            exit = fadeOut()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = if (isLastPage) Arrangement.Center else Arrangement.End
         ) {
-            Button(
-                onClick = {
-                    markOnboardingComplete(context)
-                    onFinish()
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Get Started")
+            if (!isLastPage) {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(currentPage + 1)
+                        }
+                    },
+                    shape = RoundedCornerShape(50), // full rounded button
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                ) {
+                    Text("Next", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        markOnboardingComplete(context)
+                        onFinish()
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                ) {
+                    Text("Get Started", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
             }
         }
     }
