@@ -29,9 +29,9 @@ import com.example.jetsetgo.ui.OnboardingScreen
 import com.example.jetsetgo.ui.WeeklyStatsScreen
 import com.example.jetsetgo.ui.computeWeeklyStats
 import com.example.jetsetgo.ui.isOnboardingComplete
-import com.example.jetsetgo.ui.markOnboardingComplete
 import com.example.jetsetgo.ui.theme.JetSetGoTheme
 import com.example.jetsetgo.viewmodel.StepViewModel
+import com.example.jetsetgo.worker.MidnightResetScheduler
 import com.google.accompanist.permissions.*
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -43,6 +43,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.FirebaseException
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity(), SensorEventListener {
@@ -71,6 +72,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         stepRepository = StepRepository(applicationContext)
+        MidnightResetScheduler.scheduleMidnightReset(applicationContext)
 
         setContent {
             JetSetGoTheme {
@@ -91,6 +93,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                                 })
                         }
                     } else {
+                        ensureMidnightReset()
                         var isSynced by remember { mutableStateOf(false) }
 
                         LaunchedEffect(Unit) {
@@ -285,6 +288,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
                 val today = stepRepository.today
                 var baseStep = stepRepository.getBaseStepForDate(today)
+                stepRepository.saveLastSensorTotalSteps(totalSteps)
 
                 if (baseStep == -1) {
                     val syncedSteps = stepRepository.getStepsForDate(today)
@@ -312,6 +316,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     permissionState.launchPermissionRequest()
                 }
             }
+        }
+    }
+
+    fun ensureMidnightReset() {
+        val today = LocalDate.now().toString()
+        val savedSteps = stepRepository.getStepsForDate(today)
+        val baseStep = stepRepository.getBaseStepForDate(today)
+
+        if (savedSteps == 0 && baseStep == -1) {
+            val lastSensorSteps = stepRepository.getLastSensorTotalSteps()
+            stepRepository.saveBaseStepForDate(today, lastSensorSteps)
+            stepRepository.saveStepsForDate(today, 0)
         }
     }
 

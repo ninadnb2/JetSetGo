@@ -83,4 +83,13 @@ class StepRepository(context: Context) {
         prefs.edit().clear().apply()
     }
 
+    fun getLastSensorTotalSteps(): Int {
+        val sharedPref = prefs
+        return sharedPref.getInt("last_sensor_steps", 0)
+    }
+
+    fun saveLastSensorTotalSteps(totalSteps: Int) {
+        val sharedPref = prefs
+        sharedPref.edit().putInt("last_sensor_steps", totalSteps).apply()
+    }
 }
