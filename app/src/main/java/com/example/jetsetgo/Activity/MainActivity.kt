@@ -319,7 +319,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    fun ensureMidnightReset() {
+    private fun ensureMidnightReset() {
         val today = LocalDate.now().toString()
         val savedSteps = stepRepository.getStepsForDate(today)
         val baseStep = stepRepository.getBaseStepForDate(today)

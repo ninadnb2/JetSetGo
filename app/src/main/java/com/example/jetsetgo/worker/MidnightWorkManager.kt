@@ -14,10 +14,11 @@ class MidnightResetWorker(
         val stepRepository = StepRepository(context)
         val today = LocalDate.now().toString()
 
-        val currentTotalSteps = stepRepository.getLastSensorTotalSteps()
-
-        stepRepository.saveBaseStepForDate(today, currentTotalSteps)
-        stepRepository.saveStepsForDate(today, 0)
+        if (stepRepository.getStepsForDate(today) == 0) {
+            val currentTotalSteps = stepRepository.getLastSensorTotalSteps()
+            stepRepository.saveBaseStepForDate(today, currentTotalSteps)
+            stepRepository.saveStepsForDate(today, 0)
+        }
 
         return Result.success()
     }

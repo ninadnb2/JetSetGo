@@ -21,6 +21,11 @@ class StepRepository(context: Context) {
     private fun baseStepKey(date: String) = "${baseKey}_${userId}_$date"
 
     fun saveStepsForDate(date: String, steps: Int) {
+        val existingSteps = prefs.getInt(stepKey(date), -1)
+        if (existingSteps != -1 && steps < existingSteps) {
+            return
+        }
+
         prefs.edit().putInt(stepKey(date), steps).apply()
         firebaseDb.child("users")
             .child(userId)
